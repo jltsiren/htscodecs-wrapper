@@ -1,0 +1,15 @@
+[package]
+name = "htscodecs-wrapper"
+version = "0.1.0"
+edition = "2024"
+description = "Wrapper for HTSlib compression codecs"
+license = "BSD-3-Clause"
+readme = "README.md"
+build = "src/build.rs"
+repository = "https://github.com/jltsiren/htscodecs-wrapper"
+
+[dependencies]
+libc = { version = "0.2" }
+
+[build-dependencies]
+cc = { version = "1.0", features = ["parallel"] }
