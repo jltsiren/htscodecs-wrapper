@@ -20,25 +20,32 @@ fn main() -> Result<(), String> {
     )?);
     fs::create_dir_all(&out_dir).map_err(|e| format!("Failed to create output directory: {}", e))?;
 
-    // Tell Cargo to include the output directory and the htscodecs directory in the include path.
-    let paths = env::join_paths(&[&out_dir, &htscodecs_dir])
-        .map_err(|e| format!("Failed to join paths: {}", e))?;
-    let paths = paths.to_str().ok_or_else(
-        || String::from("Paths are not valid UTF-8")
-    )?;
-    println!("cargo:include={}", paths);
-
     // Configure the C compiler.
-    let mut compiler = Build::new();
-    compiler.include(&out_dir);
-    compiler.include(&htscodecs_dir);
-    compiler.pic(true);
-    if let Ok(rustflags) = env::var("RUSTFLAGS") {
-        if rustflags.contains("target-cpu=native") {
-            compiler.flag("-march=native");
+    let mut build = Build::new();
+    build.include(&out_dir);
+    build.include(&htscodecs_dir);
+    build.pic(true);
+    if let Ok(flags) = env::var("CARGO_ENCODED_RUSTFLAGS") {
+        for flag in flags.split('\x1f') {
+            if flag.starts_with("target-cpu=") {
+                match flag.strip_prefix("target-cpu=") {
+                    Some(cpu) => {
+                        let _ = build.flag(&format!("-march={}", cpu));
+                    }
+                    _ => {},
+                }
+            }
         }
     }
-    compiler.warnings(false); // Suppress warnings about signed-to-unsigned comparisons.
+    build.warnings(false); // Suppress warnings about signed-to-unsigned comparisons.
+
+    // FIXME: Remove for release.
+    let compiler = build.get_compiler();
+    println!("cargo::warning=Using C compiler: {}", compiler.path().display());
+    println!("cargo::warning=Compiler options:");
+    for arg in compiler.args() {
+        println!("cargo::warning=  {}", arg.display());
+    }
 
     // Select the source files to compile.
     let source_files = [
@@ -56,14 +63,14 @@ fn main() -> Result<(), String> {
         "htscodecs/htscodecs/utils.c",
     ];
     for file in &source_files {
-        compiler.file(file);
+        build.file(file);
     }
 
     // Write a hacky config.h and a version.h.
     write_config_h(&out_dir)?;
     write_version_h(&out_dir)?;
 
-    compiler.compile("htscodecs");
+    build.compile("htscodecs");
 
     Ok(())
 }
