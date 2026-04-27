@@ -38,10 +38,11 @@ fn main() -> Result<(), String> {
     // FIXME: Remove for release.
     let compiler = build.get_compiler();
     println!("cargo::warning=Using C compiler: {}", compiler.path().display());
-    println!("cargo::warning=Compiler options:");
+    print!("cargo::warning=Compiler options:");
     for arg in compiler.args() {
-        println!("cargo::warning=  {}", arg.display());
+        print!(" {}", arg.display());
     }
+    println!();
 
     // Select the source files to compile.
     let source_files = [
@@ -85,14 +86,6 @@ fn write_line_to(writer: &mut BufWriter<File>, line: &str) -> Result<(), String>
     Ok(())
 }
 
-fn has_feature(features: &HashSet<&str>, feature: &str) -> i32 {
-    if features.contains(feature) {
-        1
-    } else {
-        0
-    }
-}
-
 fn write_config_h(out_dir: &Path) -> Result<(), String> {
     let config_path = out_dir.join("config.h");
     let config_file = File::create(&config_path).map_err(|e| format!("Failed to create config.h: {}", e))?;
@@ -112,14 +105,24 @@ fn write_config_h(out_dir: &Path) -> Result<(), String> {
     println!("cargo::warning=Target CPU features: {}", feature_list);
 
     // And now determine the CPU feature flags.
-    write_line_to(&mut config_file, &format!("#define HAVE_AVX2 {}", has_feature(&features, "avx2")))?;
-    write_line_to(&mut config_file, &format!("#define HAVE_AVX512 {}", has_feature(&features, "avx512f")))?;
+    if features.contains("avx2") {
+        write_line_to(&mut config_file, "#define HAVE_AVX2 1")?;
+    }
+    if features.contains("avx512f") {
+        write_line_to(&mut config_file, "#define HAVE_AVX512 1")?;
+    }
     write_line_to(&mut config_file, "#define HAVE_BUILTIN_PREFETCH 1")?; // Only used in fqzcomp, which we do not use.
     write_line_to(&mut config_file, &format!("#define HAVE_DECL___CPUID_COUNT {}", cpuid_flag))?;
     write_line_to(&mut config_file, &format!("#define HAVE_DECL___GET_CPUID_MAX {}", cpuid_flag))?;
-    write_line_to(&mut config_file, &format!("#define HAVE_POPCNT {}", has_feature(&features, "popcnt")))?;
-    write_line_to(&mut config_file, &format!("#define HAVE_SSE4_1 {}", has_feature(&features, "sse4.1")))?;
-    write_line_to(&mut config_file, &format!("#define HAVE_SSE3 {}", has_feature(&features, "sse3")))?;
+    if features.contains("popcnt") {
+        write_line_to(&mut config_file, "#define HAVE_POPCNT 1")?;
+    }
+    if features.contains("sse4.1") {
+        write_line_to(&mut config_file, "#define HAVE_SSE4_1 1")?;
+    }
+    if features.contains("sse3") {
+        write_line_to(&mut config_file, "#define HAVE_SSE3 1")?;
+    }
 
     // Assume that all standard headers are available.
     write_line_to(&mut config_file, "#define HAVE_DLFCN_H 1")?;
