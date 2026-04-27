@@ -22,6 +22,10 @@ fn rans_test(data: &[u8], flags: RANSFlags, test_case: &str) {
     assert_eq!(without_output_size, data, "Wrong decompressed data without output size for {}", test_case);
 }
 
+const ALPHANUMERIC: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+
+const DNA: &[u8] = b"ACGT";
+
 fn rans_test_cases(flags: RANSFlags) {
     let mut test_cases = Vec::new();
 
@@ -30,21 +34,29 @@ fn rans_test_cases(flags: RANSFlags) {
     test_cases.push(("repeated", vec![7; 1000]));
 
     let mut rng = rand::rng();
-    let random_data: Vec<u8> = (0..10000).map(|_| rng.random()).collect();
-    test_cases.push(("random", random_data));
 
-    let base: Vec<u8> = (0..1000).map(|_| rng.random()).collect();
-    let mut repetitive = Vec::new();
+    let random_data: Vec<u8> = (0..10000).map(|_| rng.random()).collect();
+    test_cases.push(("random bytes", random_data));
+
+    let random_alphanumeric: Vec<u8> = (0..10000).map(|_|
+        ALPHANUMERIC[rng.random_range(0..ALPHANUMERIC.len())]
+    ).collect();
+    test_cases.push(("random alphanumeric", random_alphanumeric));
+
+    let base: Vec<u8> = (0..1000).map(|_|
+        DNA[rng.random_range(0..DNA.len())]
+    ).collect();
+    let mut repetitive_dna = Vec::new();
     for _ in 0..10 {
         for &byte in base.iter() {
             if rng.random::<f32>() < 0.03 {
-                repetitive.push(rng.random());
+                repetitive_dna.push(DNA[rng.random_range(0..DNA.len())]);
             } else {
-                repetitive.push(byte);
+                repetitive_dna.push(byte);
             }
         }
     }
-    test_cases.push(("repetitive", repetitive));
+    test_cases.push(("repetitive DNA", repetitive_dna));
 
     for (test_case, data) in test_cases {
         rans_test(&data, flags, test_case);

@@ -1,6 +1,6 @@
 use std::fs::File;
 use std::io::{Write, BufWriter};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::{env, fs};
 
 use cc::Build;
@@ -27,13 +27,8 @@ fn main() -> Result<(), String> {
     build.pic(true);
     if let Ok(flags) = env::var("CARGO_ENCODED_RUSTFLAGS") {
         for flag in flags.split('\x1f') {
-            if flag.starts_with("target-cpu=") {
-                match flag.strip_prefix("target-cpu=") {
-                    Some(cpu) => {
-                        let _ = build.flag(&format!("-march={}", cpu));
-                    }
-                    _ => {},
-                }
+            if let Some(cpu) = flag.strip_prefix("target-cpu=") {
+                let _ = build.flag(format!("-march={}", cpu));
             }
         }
     }
@@ -89,7 +84,7 @@ fn write_line_to(writer: &mut BufWriter<File>, line: &str) -> Result<(), String>
     Ok(())
 }
 
-fn write_config_h(out_dir: &PathBuf) -> Result<(), String> {
+fn write_config_h(out_dir: &Path) -> Result<(), String> {
     let config_path = out_dir.join("config.h");
     let config_file = File::create(&config_path).map_err(|e| format!("Failed to create config.h: {}", e))?;
     let mut config_file = BufWriter::new(config_file);
@@ -143,7 +138,7 @@ fn write_config_h(out_dir: &PathBuf) -> Result<(), String> {
     Ok(())
 }
 
-fn write_version_h(out_dir: &PathBuf) -> Result<(), String> {
+fn write_version_h(out_dir: &Path) -> Result<(), String> {
     let version_path = out_dir.join("version.h");
     let version_file = File::create(&version_path).map_err(|e| format!("Failed to create version.h: {}", e))?;
     let mut version_file = BufWriter::new(version_file);

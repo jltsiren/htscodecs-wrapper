@@ -1,4 +1,33 @@
-// FIXME: document
+//! Wrapper for HTSlib codecs used in GAF-base.
+//!
+//! This is a minimal Rust wrapper for some [HTSlib](https://github.com/samtools/htslib) compression codecs.
+//! It depends on the [htscodecs](https://github.com/samtools/htscodecs) C library.
+//! Only codecs used in [GAF-base](https://github.com/jltsiren/gbz-base) are compiled.
+//!
+//! # Codecs
+//!
+//! ### rANS
+//!
+//! rANS (range Asymmetric Numeral Systems) is a family of fast entropy encoders.
+//! The 4x16 variant with 4 parallel states and 16-bit renormalization is appropriate for compressing quality scores.
+//! Zero-order and first-order models with optional run-length encoding and symbol packing can be selected using [`RANSFlags`].
+//! Compression and decompression are done using [`rans_compress`] and [`rans_decompress`].
+//!
+//! # References
+//!
+//! ### Asymmetric numeral systems
+//!
+//! Jarek Duda:
+//! **Asymmetric numeral systems: entropy coding combining speed of Huffman coding with compression rate of arithmetic coding**.\
+//! arXiv, 2013.
+//! DOI: [10.48550/arXiv.1311.2540](https://doi.org/10.48550/arXiv.1311.2540).
+//!
+//! ### HTSlib codecs
+//!
+//! James K. Bonfield:
+//! **CRAM 3.1: advances in the CRAM file format**.\
+//! Bioinformatics 38(6):1497-1503, 2022.
+//! DOI: [10.1093/bioinformatics/btac010](https://doi.org/10.1093/bioinformatics/btac010).
 
 use std::os::raw::{c_uint, c_int, c_uchar};
 
@@ -122,9 +151,9 @@ pub fn rans_compress(input: &[u8], flags: RANSFlags) -> Result<Vec<u8>, String> 
     Ok(compressed)
 }
 
-/// Uncompresses the input data using rANS 4x16.
+/// Decompresses the input data using rANS 4x16.
 ///
-/// Returns the uncompressed data on success, or an error message on failure.
+/// Returns the decompressed data on success, or an error message on failure.
 /// If `output_size` is provided, the data is decompressed directly into the output buffer.
 /// Otherwise it is decompressed into a temporary buffer allocated in the C code and copied to a Rust vector.
 ///

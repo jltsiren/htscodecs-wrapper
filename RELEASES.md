@@ -2,7 +2,9 @@
 
 ## Current version
 
-* ...
+* rANS 4x16 entropy coder:
+  * Zero-order and first-order models.
+  * Optional run-length encoding and packing multiple symbols into a byte.
 
 ## Release process
 
