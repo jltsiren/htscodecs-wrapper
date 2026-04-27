@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::fs::File;
 use std::io::{Write, BufWriter};
 use std::path::{Path, PathBuf};
@@ -84,21 +85,41 @@ fn write_line_to(writer: &mut BufWriter<File>, line: &str) -> Result<(), String>
     Ok(())
 }
 
+fn has_feature(features: &HashSet<&str>, feature: &str) -> i32 {
+    if features.contains(feature) {
+        1
+    } else {
+        0
+    }
+}
+
 fn write_config_h(out_dir: &Path) -> Result<(), String> {
     let config_path = out_dir.join("config.h");
     let config_file = File::create(&config_path).map_err(|e| format!("Failed to create config.h: {}", e))?;
     let mut config_file = BufWriter::new(config_file);
 
-    // We can ignore the CPU features, as we are not using the SIMD-enabled
-    // rANS 32x16 code path.
-    write_line_to(&mut config_file, "#define HAVE_AVX2 0")?;
-    write_line_to(&mut config_file, "#define HAVE_AVX512 0")?;
-    write_line_to(&mut config_file, "#define HAVE_BUILTIN_PREFETCH 0")?;
-    write_line_to(&mut config_file, "#define HAVE_DECL___CPUID_COUNT 0")?;
-    write_line_to(&mut config_file, "#define HAVE_DECL___CPUID_MAX 0")?;
-    write_line_to(&mut config_file, "#define HAVE_POPCNT 0")?;
-    write_line_to(&mut config_file, "#define HAVE_SSE4_1 0")?;
-    write_line_to(&mut config_file, "#define HAVE_SSE3 0")?;
+    // Parse target CPU features.
+    let target_arch = env::var("CARGO_CFG_TARGET_ARCH").map_err(
+        |e| format!("Failed to get CARGO_CFG_TARGET_ARCH environment variable: {}", e)
+    )?;
+    let cpuid_flag = if target_arch == "x86_64" { 1 } else { 0 };
+    let feature_list = env::var("CARGO_CFG_TARGET_FEATURE").map_err(
+        |e| format!("Failed to get CARGO_CFG_TARGET_FEATURE environment variable: {}", e)
+    )?;
+    let features: HashSet<&str> = feature_list.split(',').collect();
+
+    // FIXME: Remove for release.
+    println!("cargo::warning=Target CPU features: {}", feature_list);
+
+    // And now determine the CPU feature flags.
+    write_line_to(&mut config_file, &format!("#define HAVE_AVX2 {}", has_feature(&features, "avx2")))?;
+    write_line_to(&mut config_file, &format!("#define HAVE_AVX512 {}", has_feature(&features, "avx512f")))?;
+    write_line_to(&mut config_file, "#define HAVE_BUILTIN_PREFETCH 1")?; // Only used in fqzcomp, which we do not use.
+    write_line_to(&mut config_file, &format!("#define HAVE_DECL___CPUID_COUNT {}", cpuid_flag))?;
+    write_line_to(&mut config_file, &format!("#define HAVE_DECL___GET_CPUID_MAX {}", cpuid_flag))?;
+    write_line_to(&mut config_file, &format!("#define HAVE_POPCNT {}", has_feature(&features, "popcnt")))?;
+    write_line_to(&mut config_file, &format!("#define HAVE_SSE4_1 {}", has_feature(&features, "sse4.1")))?;
+    write_line_to(&mut config_file, &format!("#define HAVE_SSE3 {}", has_feature(&features, "sse3")))?;
 
     // Assume that all standard headers are available.
     write_line_to(&mut config_file, "#define HAVE_DLFCN_H 1")?;
