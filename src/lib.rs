@@ -29,6 +29,7 @@
 //! Bioinformatics 38(6):1497-1503, 2022.
 //! DOI: [10.1093/bioinformatics/btac010](https://doi.org/10.1093/bioinformatics/btac010).
 
+use std::fmt::{self, Display};
 use std::os::raw::{c_uint, c_int, c_uchar};
 
 #[cfg(test)]
@@ -73,6 +74,7 @@ pub struct RANSFlags {
 }
 
 impl RANSFlags {
+    const FLAG_FIRST_ORDER: c_int = 1; // Use first-order model instead of zero-order.
     const FLAG_RLE: c_int = 0x40; // Enable run-length encoding.
     const FLAG_PACK: c_int = 0x80; // Enable packing multiple symbols into a byte.
 
@@ -83,7 +85,7 @@ impl RANSFlags {
 
     /// Creates flags for first-order rANS.
     pub fn first_order() -> Self {
-        Self { flags: 1 }
+        Self { flags: Self::FLAG_FIRST_ORDER }
     }
 
     /// Enables run-length encoding.
@@ -96,6 +98,26 @@ impl RANSFlags {
         Self { flags: self.flags | Self::FLAG_PACK }
     }
 }
+
+impl Display for RANSFlags {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "rANS 4x16 (")?;
+        if self.flags & Self::FLAG_FIRST_ORDER != 0 {
+            write!(f, "o1")?;
+        } else {
+            write!(f, "o0")?;
+        }
+        if self.flags & Self::FLAG_RLE != 0 {
+            write!(f, ", rle")?;
+        }
+        if self.flags & Self::FLAG_PACK != 0 {
+            write!(f, ", pack")?;
+        }
+        write!(f, ")")
+    }
+}
+
+//-----------------------------------------------------------------------------
 
 /// Compresses the input data using rANS 4x16 with the specified flags.
 ///
