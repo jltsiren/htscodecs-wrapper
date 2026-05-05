@@ -35,14 +35,13 @@ fn main() -> Result<(), String> {
     }
     build.warnings(false); // Suppress warnings about signed-to-unsigned comparisons.
 
-    // FIXME: Remove for release.
-    let compiler = build.get_compiler();
-    println!("cargo::warning=Using C compiler: {}", compiler.path().display());
-    print!("cargo::warning=Compiler options:");
-    for arg in compiler.args() {
-        print!(" {}", arg.display());
-    }
-    println!();
+    // let compiler = build.get_compiler();
+    // println!("cargo::warning=Using C compiler: {}", compiler.path().display());
+    // print!("cargo::warning=Compiler options:");
+    // for arg in compiler.args() {
+    //     print!(" {}", arg.display());
+    // }
+    // println!();
 
     // Select the source files to compile.
     let source_files = [
@@ -101,8 +100,7 @@ fn write_config_h(out_dir: &Path) -> Result<(), String> {
     )?;
     let features: HashSet<&str> = feature_list.split(',').collect();
 
-    // FIXME: Remove for release.
-    println!("cargo::warning=Target CPU features: {}", feature_list);
+    // println!("cargo::warning=Target CPU features: {}", feature_list);
 
     // And now determine the CPU feature flags.
     if features.contains("avx2") {

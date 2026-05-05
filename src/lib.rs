@@ -127,7 +127,7 @@ impl Display for RANSFlags {
 ///
 /// # Errors
 ///
-/// Returns an error if the worst-case compressed size would exceed approximately [`u32::MAX`].
+/// Returns an error if the worst-case compressed size would exceed approximately [`i32::MAX`].
 /// Returns an error if the compression fails for any reason.
 ///
 /// # Examples
@@ -150,8 +150,9 @@ impl Display for RANSFlags {
 /// assert_eq!(decompressed, input);
 /// ```
 pub fn rans_compress(input: &[u8], flags: RANSFlags) -> Result<Vec<u8>, String> {
-    if input.len() > 4_000_000_000 {
-        return Err(String::from("Input size exceeds maximum supported size of 4 GB"));
+    // Worst-case compressed size can exceed input size.
+    if input.len() > 2_000_000_000 {
+        return Err(String::from("Input size exceeds maximum supported size of 2 GB"));
     }
 
     let mut bound = unsafe { rans_compress_bound_4x16(input.len() as c_uint, flags.flags) };
@@ -183,17 +184,17 @@ pub fn rans_compress(input: &[u8], flags: RANSFlags) -> Result<Vec<u8>, String> 
 ///
 /// # Errors
 ///
-/// Returns an error if input or output size reaches or exceeds [`u32::MAX`].
+/// Returns an error if input or output size reaches or exceeds [`i32::MAX`].
 /// Returns an error if the decompression fails for any reason.
 pub fn rans_decompress(input: &[u8], output_size: Option<usize>) -> Result<Vec<u8>, String> {
-    if input.len() >= (u32::MAX as usize) {
-        return Err(String::from("Input size does not fit in u32"));
+    if input.len() >= (i32::MAX as usize) {
+        return Err(String::from("Input size does not fit in i32"));
     }
 
     // Allocate an output buffer or tell the C code to use a temporary buffer.
     let (mut output, mut output_size, temporary_buffer) = if let Some(size) = output_size {
-        if size >= (u32::MAX as usize) {
-            return Err(String::from("Output size does not fit in u32"));
+        if size >= (i32::MAX as usize) {
+            return Err(String::from("Output size does not fit in i32"));
         }
         (Vec::with_capacity(size), size as c_uint, false)
     } else {

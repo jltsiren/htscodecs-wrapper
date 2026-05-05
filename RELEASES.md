@@ -1,6 +1,6 @@
 # HTScodecs-wrapper releases
 
-## Current version
+## HTScodecs-wrapper 0.1.0 (2026-05-05)
 
 * rANS 4x16 entropy coder:
   * Zero-order and first-order models.
